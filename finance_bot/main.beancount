@@ -1,0 +1,390 @@
+option "operating_currency" "EUR"
+option "insert_pythonpath" "True"
+
+plugin "budget_eur"
+
+2024-07-24 open Assets:NL:ING:Checking59 EUR
+2024-07-24 open Assets:NL:ING:Checking34 EUR
+2024-07-24 open Assets:NL:ING:Savings EUR
+2024-07-24 open Assets:BE:WISE:Checking EUR
+2024-07-24 open Assets:BE:WISE:Savings EUR
+2024-07-24 open Assets:BE:WISE:Investments EUR
+
+2024-07-24 open Liabilities:NL:ING:CreditCard EUR
+2024-07-24 open Liabilities:NL:AMEX:Green EUR
+2024-07-24 open Equity:OpeningBalances EUR
+
+2024-07-24 open Income:NL:Fung:Salary EUR,BGT_EUR
+2024-07-24 open Income:AssetSales:Bright EUR,BGT_EUR
+
+2024-07-24 open Income:Available BGT_EUR
+2024-07-24 open Expenses:Spent BGT_EUR
+2024-07-24 open Expenses:Fixed:Insurance EUR,BGT_EUR
+2024-07-24 open Expenses:Fixed:RentUtilities EUR,BGT_EUR
+2024-07-24 open Expenses:Fixed:Phone EUR,BGT_EUR
+2024-07-24 open Expenses:Fixed:Music EUR,BGT_EUR
+2024-07-24 open Expenses:Fixed:Fitness EUR,BGT_EUR
+2024-07-24 open Expenses:Fixed:Charity EUR,BGT_EUR
+2024-07-24 open Expenses:Fixed:CarLoan EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:HouseTax EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Transport EUR,BGT_EUR
+2024-07-24 open Expenses:Savings:OurHouse EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:LuxTrip24Oct EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:TurkeyTrip24Oct EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Groceries EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:PersonalCare EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:BankFees EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:MyLove EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Party EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:EatOut EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Tobacco EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Clothes EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Family EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Forgotten EUR,BGT_EUR
+2024-07-24 open Expenses:Variable:Education EUR,BGT_EUR
+2024-07-24 open Expenses:Savings:BilCunts EUR,BGT_EUR
+
+
+2024-07-24 pad Assets:NL:ING:Checking59 Equity:OpeningBalances
+2024-07-24 pad Assets:NL:ING:Checking34 Equity:OpeningBalances
+2024-07-24 pad Assets:NL:ING:Savings Equity:OpeningBalances
+2024-07-24 pad Assets:BE:WISE:Checking Equity:OpeningBalances
+2024-07-24 pad Assets:BE:WISE:Savings Equity:OpeningBalances
+2024-07-24 pad Assets:BE:WISE:Investments Equity:OpeningBalances
+2024-07-24 pad Liabilities:NL:ING:CreditCard Equity:OpeningBalances
+2024-07-24 pad Liabilities:NL:AMEX:Green Equity:OpeningBalances
+
+2024-07-24 * "Opening Balance"
+    Income:Available                               -719.36 BGT_EUR
+    Expenses:Spent                                  
+
+
+; Assets:NL:ING:Savings EUR
+2024-07-25 * "Withdrawal"
+    Assets:NL:ING:Savings                             -500 EUR
+    Assets:NL:ING:Checking59                          
+
+; Liabilities:NL:ING:CreditCard EUR
+2024-09-03 * "AFLOSSING"
+    Liabilities:NL:ING:CreditCard                   557.84 EUR
+    Assets:NL:ING:Checking59                      
+    
+; Assets:NL:ING:Checking59 EUR
+2024-08-23 * "FUNG PAYMENTS BV"
+    Assets:NL:ING:Checking59                       3596.70 EUR
+    Income:NL:Fung:Salary
+
+;;; IMPORT FROM YNAB
+2024-08-25 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                       3.20 EUR
+    Liabilities:NL:AMEX:Green
+2024-08-25 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                       2.25 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Hr SSJ Rowland"
+    Expenses:Fixed:RentUtilities                       625 EUR
+    Assets:BE:WISE:Checking                          
+2024-09-01 * "Liberte 56"
+    Expenses:Variable:Tobacco                          415 EUR
+    Assets:BE:WISE:Checking                          
+2024-09-01 * "KIWI.COM sro SZ"
+    Expenses:Variable:TurkeyTrip24Oct                  355 EUR
+    Liabilities:NL:ING:CreditCard                    
+2024-09-01 * "Credit Card Cash Advance"
+    Assets:BE:WISE:Checking                            200 EUR
+    Expenses:Variable:BankFees                        2.84 EUR
+    Liabilities:NL:ING:CreditCard                 
+2024-09-01 * "Airbnb" "Istanbul Septemeber 2024 second installment"
+    Expenses:Variable:MyLove                        194.09 EUR
+    Liabilities:NL:ING:CreditCard                    
+2024-09-01 * "Denis Kiselev"
+    Expenses:Fixed:CarLoan                             100 EUR
+    Assets:BE:WISE:Checking                          
+2024-09-01 * "Loop"
+    Expenses:Variable:MyLove                         59.90 EUR
+    Liabilities:NL:AMEX:Green                     
+2024-09-01 * "SushiShop"
+    Expenses:Variable:LuxTrip24Oct                   43.40 EUR
+    Liabilities:NL:AMEX:Green                     
+2024-09-01 * "AMZN MKTP NL via Amazon Payments Europe SCA"
+    Expenses:Variable:Tobacco                        20.94 EUR
+    Liabilities:NL:AMEX:Green                     
+2024-09-01 * "AMZN MKTP NL via Amazon Payments Europe SCA"
+    Expenses:Variable:MyLove                         15.89 EUR
+    Liabilities:NL:AMEX:Green                     
+2024-09-01 * "Proxy Delhaize"
+    Expenses:Variable:LuxTrip24Oct                   12.51 EUR
+    Liabilities:NL:AMEX:Green                     
+2024-09-01 * "Proxy Delhaize"
+    Expenses:Variable:LuxTrip24Oct                   11.02 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "New York Pizza"
+    Expenses:Variable:EatOut                         10.98 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Jumbo Den Haag Station"
+    Expenses:Variable:Groceries                       9.43 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "New York Pizza"
+    Expenses:Variable:EatOut                          7.99 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                       7.38 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Esso Delft"
+    Expenses:Variable:LuxTrip24Oct                    6.09 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                       4.50 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Q8"
+    Expenses:Variable:LuxTrip24Oct                    4.48 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Auchan Capellen"
+    Expenses:Variable:LuxTrip24Oct                    2.39 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Rente ING Rood Staan"
+    Expenses:Variable:BankFees                        1.84 EUR
+    Assets:NL:ING:Checking59
+2024-09-01 * "Liberte 56"
+    Expenses:Variable:Tobacco                         0.90 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-01 * "Hr SSJ Rowland"
+    Assets:NL:ING:Checking34                         55.00 EUR
+    Expenses:Variable:Tobacco                        
+2024-09-02 * "FBTO ZORGVERZEKERINGEN NV"
+    Expenses:Fixed:Insurance                        131.95 EUR
+    Assets:NL:ING:Checking59
+2024-09-02 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                      18.02 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-02 * "NS GROEP IZ NS REIZIGERS"
+    Expenses:Variable:Transport                       5.60 EUR
+    Assets:NL:ING:Checking59
+2024-09-02 * "ALBERT HEIJN 1495"
+    Expenses:Variable:Groceries                       2.10 EUR
+    Assets:NL:ING:Checking59
+2024-09-02 * "TransferWise"
+    Expenses:Variable:BankFees                        0.03 EUR
+    Assets:BE:WISE:Checking
+2024-09-02 * "TransferWise"
+    Expenses:Variable:BankFees                        0.02 EUR
+    Assets:BE:WISE:Checking
+2024-09-03 * "Ajiou via Tikkie" "Longchamp bag"
+    Expenses:Variable:MyLove                           100 EUR
+    Assets:NL:ING:Checking59
+2024-09-03 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                       7.69 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-03 * "Amazon Web Services"
+    Expenses:Variable:Forgotten                       0.19 EUR
+    Assets:BE:WISE:Checking
+2024-09-04 * "BCW*Coiffeure valkenwe"
+    Expenses:Variable:PersonalCare                      23 EUR
+    Assets:NL:ING:Checking59
+2024-09-04 * "Taksim Tabakshop"
+    Expenses:Variable:Tobacco                         1.50 EUR
+    Assets:NL:ING:Checking59
+2024-09-05 * "ALBERT HEIJN 1495"
+    Expenses:Variable:Groceries                       7.47 EUR
+    Assets:NL:ING:Checking59                        
+2024-09-06 * "N Kolay Passo"
+    Expenses:Variable:MyLove                         77.33 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-06 * "Trainmore"
+    Expenses:Fixed:Fitness                           48.72 EUR
+    Assets:NL:ING:Checking59
+2024-09-06 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                      11.92 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-06 * "Maya Mobile"
+    Expenses:Variable:MyLove                         11.70 EUR
+    Assets:BE:WISE:Checking
+2024-09-06 * "Bruna 2311 G-pier (pop" "Vogue for my love"
+    Expenses:Variable:MyLove                         11.49 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-06 * "Falafel en Hummus"
+    Expenses:Variable:EatOut                          7.50 EUR
+    Assets:NL:ING:Checking59
+2024-09-06 * "D Rondini"
+    Expenses:Variable:Tobacco                       -55.00 EUR
+    Assets:NL:ING:Checking59
+2024-09-07 * "Geldmaat Kerkplein"
+    Expenses:Variable:MyLove                        200.00 EUR
+    Assets:NL:ING:Checking34
+2024-09-07 * "Geldmaat Kerkplein"
+    Expenses:Variable:MyLove                        200.00 EUR
+    Assets:NL:ING:Checking34
+2024-09-07 * "Shop 3/ House of Tulip"
+    Expenses:Variable:MyLove                         17.99 EUR
+    Assets:NL:ING:Checking59
+2024-09-08 * "Google Play" "Robux"
+    Expenses:Variable:MyLove                         11.99 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-08 * "Google Play" "Robux"
+    Expenses:Variable:MyLove                          1.99 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-09 * "Odido Netherlands B.V."
+    Expenses:Fixed:Phone                             38.89 EUR
+    Assets:NL:ING:Checking59
+2024-09-09 * "Starbucks"
+    Expenses:Variable:MyLove                          6.51 EUR
+    Assets:BE:WISE:Checking
+2024-09-10 * "Google Play Bills" "YNAB subscription"
+    Expenses:Variable:Forgotten                      16.99 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-10 * "Kosten geldopname ING Betaalpas"
+    Expenses:Variable:BankFees                        1.60 EUR
+    Assets:NL:ING:Checking34
+2024-09-10 * "TransferWise"
+    Expenses:Variable:BankFees                       -0.13 EUR
+    Assets:BE:WISE:Checking
+2024-09-11 * "Maya Mobile"
+    Expenses:Variable:MyLove                         15.00 EUR
+    Assets:BE:WISE:Checking
+2024-09-11 * "Espressolab Cihangir"
+    Expenses:Variable:MyLove                          7.38 EUR
+    Assets:BE:WISE:Checking
+2024-09-11 * "Kosten OranjePakket met korting"
+    Expenses:Variable:BankFees                        3.20 EUR
+    Assets:NL:ING:Checking34
+2024-09-12 * "Kosten OranjePakket met korting"
+    Expenses:Variable:BankFees                        3.65 EUR
+    Assets:NL:ING:Checking59
+2024-09-14 * "Ledas Gida Yatirimlari"
+    Expenses:Variable:MyLove                          7.48 EUR
+    Assets:BE:WISE:Checking
+2024-09-14 * "Soundcloud"
+    Expenses:Fixed:Music                              5.99 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-16 * "Bright Lifecycle Fund"
+    Assets:NL:ING:Checking59                          3.35 EUR
+    Income:AssetSales:Bright
+2024-09-16 * "Bright Lifecycle Fund"
+    Assets:NL:ING:Checking59                       1396.04 EUR
+    Income:AssetSales:Bright
+2024-09-17 * "Huel"
+    Expenses:Variable:Groceries                      65.00 EUR
+    Assets:BE:WISE:Checking
+2024-09-17 * "Irodion"
+    Expenses:Variable:EatOut                          8.00 EUR
+    Assets:NL:ING:Checking59
+2024-09-17 * "Custodian Fung Payments"
+    Expenses:Variable:Forgotten                       0.42 EUR
+    Assets:NL:ING:Checking59
+2024-09-18 * "DIRK VDBROEK FIL1212"
+    Expenses:Variable:Groceries                       8.60 EUR
+    Assets:NL:ING:Checking34
+2024-09-18 * "5869 GVC AH to go"
+    Expenses:Variable:Groceries                       4.40 EUR
+    Assets:NL:ING:Checking34
+2024-09-18 * "Nationale-Nederlanden"
+    Expenses:Fixed:Insurance                          3.55 EUR
+    Assets:NL:ING:Checking34
+2024-09-18 * "CUSTODIAN FUNG PAYMENTS"
+    Expenses:Variable:Forgotten                       0.69 EUR
+    Assets:NL:ING:Checking34
+2024-09-18 * "Custodian Fung Payments"
+    Assets:NL:ING:Checking59                          0.42 EUR
+    Expenses:Variable:Forgotten                      
+2024-09-18 * "O Myndar"
+    Assets:NL:ING:Checking59                         15.00 EUR
+    Expenses:Variable:Tobacco                        
+2024-09-19 * "TABAKSHUIS NOORD"
+    Expenses:Variable:Tobacco                        16.00 EUR
+    Assets:NL:ING:Checking34
+2024-09-20 * "5015 Den Haag CS AT3"
+    Expenses:Variable:EatOut                          4.50 EUR
+    Assets:NL:ING:Checking34
+    
+;;; BUDGET ALLOCATION from YNAB
+2024-09-01 * "Budget Allocation"
+    #budget
+    Expenses:Fixed:Insurance                        135.50 BGT_EUR
+    Expenses:Fixed:RentUtilities                       625 BGT_EUR
+    Expenses:Fixed:Phone                             38.89 BGT_EUR
+    Expenses:Fixed:Music                              5.99 BGT_EUR
+    Expenses:Fixed:Fitness                           48.72 BGT_EUR
+    Expenses:Fixed:Charity                              15 BGT_EUR
+    Expenses:Fixed:CarLoan                             100 BGT_EUR
+    Expenses:Variable:HouseTax                           0 BGT_EUR
+    Expenses:Variable:Transport                        5.6 BGT_EUR
+    Expenses:Savings:OurHouse                          100 BGT_EUR 
+    Expenses:Variable:LuxTrip24Oct                   79.89 BGT_EUR
+    Expenses:Variable:TurkeyTrip24Oct                  355 BGT_EUR
+    Expenses:Variable:Groceries                     183.02 BGT_EUR
+    Expenses:Variable:PersonalCare                      23 BGT_EUR
+    Expenses:Variable:BankFees                       13.05 BGT_EUR
+    Expenses:Variable:MyLove                        938.74 BGT_EUR
+    Expenses:Variable:Party                              0 BGT_EUR
+    Expenses:Variable:EatOut                         38.97 BGT_EUR
+    Expenses:Variable:Tobacco                       144.34 BGT_EUR
+    Expenses:Variable:Clothes                            0 BGT_EUR
+    Expenses:Variable:Family                             0 BGT_EUR
+    Expenses:Variable:Forgotten                      17.87 BGT_EUR
+    Expenses:Variable:Education                      14.00 BGT_EUR
+    Expenses:Savings:BilCunts                            0 BGT_EUR
+    Income:Available 
+    
+2024-09-16 balance Liabilities:NL:AMEX:Green       -325.71 EUR
+
+2024-09-21 balance Assets:NL:ING:Checking59           5.30 EUR
+2024-09-21 balance Assets:NL:ING:Checking34           2.46 EUR
+2024-09-21 balance Assets:NL:ING:Savings                 0 EUR
+2024-09-21 balance Assets:BE:WISE:Checking         1299.10 EUR
+2024-09-21 balance Assets:BE:WISE:Savings           100.17 EUR
+2024-09-21 balance Assets:BE:WISE:Investments         0.10 EUR
+2024-09-21 balance Liabilities:NL:ING:CreditCard         0 EUR
+
+2024-09-20 * "DIRK VAN DEN BROEK TORE S GRAVENHAGE"
+    Expenses:Variable:Groceries                       6.40 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-21 * "PRAGMATICENGINEER.COM AMSTERDAM, NETH"
+    Expenses:Variable:Education                         14 EUR
+    Liabilities:NL:AMEX:Green
+2024-09-21 * "Hr M Doorenbosch" 
+    Expenses:Variable:Tobacco                          -45 EUR
+    Assets:NL:ING:Checking59
+2024-09-21 * "Transfer"
+    Assets:NL:ING:Checking59                            -5 EUR
+    Assets:NL:ING:Checking34
+2024-09-21 * "ALBERT HEIJN 1624"
+    Expenses:Variable:Groceries                       2.14 EUR
+    Assets:NL:ING:Checking34
+
+2024-09-22 balance Assets:NL:ING:Checking59          45.30 EUR
+2024-09-22 balance Assets:NL:ING:Checking34           5.32 EUR
+2024-09-22 balance Assets:NL:ING:Savings                 0 EUR
+2024-09-22 balance Assets:BE:WISE:Checking         1299.10 EUR
+2024-09-22 balance Assets:BE:WISE:Savings           100.17 EUR
+2024-09-22 balance Assets:BE:WISE:Investments         0.10 EUR
+2024-09-22 balance Liabilities:NL:ING:CreditCard         0 EUR
+2024-09-22 balance Liabilities:NL:AMEX:Green       -346.11 EUR
+
+;;; BUDGET ALLOCATION 2024-10
+2024-10-01 * "Budget Allocation"
+    #budget
+    Expenses:Savings:OurHouse                            0 BGT_EUR 
+    Expenses:Fixed:CarLoan                             100 BGT_EUR
+    Expenses:Fixed:RentUtilities                       625 BGT_EUR
+    Expenses:Fixed:Insurance                        135.50 BGT_EUR
+    Expenses:Fixed:Phone                                35 BGT_EUR
+    Expenses:Fixed:Music                             21.99 BGT_EUR
+    Expenses:Fixed:Fitness                               0 BGT_EUR
+    Expenses:Variable:Transport                          0 BGT_EUR
+    Expenses:Variable:LuxTrip24Oct                       0 BGT_EUR
+    Expenses:Variable:TurkeyTrip24Oct                 2300 BGT_EUR
+    Expenses:Variable:Groceries                        250 BGT_EUR
+    Expenses:Variable:PersonalCare                      23 BGT_EUR
+    Expenses:Variable:BankFees                           5 BGT_EUR
+    Expenses:Variable:MyLove                            50 BGT_EUR
+    Expenses:Variable:EatOut                            30 BGT_EUR
+    Expenses:Variable:Tobacco                            0 BGT_EUR
+    Expenses:Variable:Clothes                            0 BGT_EUR
+    Expenses:Variable:Education                         10 BGT_EUR
+    Expenses:Fixed:Charity                              15 BGT_EUR
+    Expenses:Variable:Family                             0 BGT_EUR
+    Expenses:Variable:Forgotten                      40.34 BGT_EUR
+    Expenses:Savings:BilCunts                         1350 BGT_EUR
+    Income:Available 
+
+2024-10-02 balance Income:Available               -3596.70 BGT_EUR
