@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Sample-Python-Telegram-Bot-AWS-Serverless
@@ -8,7 +8,7 @@ Globals:
     Timeout: 3
     Runtime: python3.12
     Tags:
-      project: "Python-Telegram-Bot"
+      project: "Finance-Bot"
     Architectures:
       - arm64
     LoggingConfig:
@@ -16,11 +16,11 @@ Globals:
       LogFormat: JSON
 
 Resources:
-  PTBFunction:
-    Type: AWS::Serverless::Function 
+  FinanceBotFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ptb/
-      Handler: ptb_lambda.lambda_handler
+      CodeUri: finance_bot/
+      Handler: bot_lambda.lambda_handler
       FunctionUrlConfig:
         AuthType: NONE
 
