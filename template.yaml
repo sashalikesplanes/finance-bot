@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample-Python-Telegram-Bot-AWS-Serverless
+
+Globals:
+  Function:
+    Timeout: 3
+    Runtime: python3.12
+    Tags:
+      project: "Python-Telegram-Bot"
+    Architectures:
+      - arm64
+    LoggingConfig:
+      LogGroup: !Sub /aws/lambda/${AWS::StackName}
+      LogFormat: JSON
+
+Resources:
+  PTBFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: ptb/
+      Handler: ptb_lambda.lambda_handler
+      FunctionUrlConfig:
+        AuthType: NONE
+
+Outputs:
+  TelegramApi:
+    Description: "Lambda Function URL for PTB API"
+    Value:
+      Fn::GetAtt: PTBFunctionUrl.FunctionUrl
