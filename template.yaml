@@ -23,6 +23,21 @@ Resources:
       Handler: bot_lambda.lambda_handler
       FunctionUrlConfig:
         AuthType: NONE
+      ReservedConcurrentExecutions: 1
+      Timeout: 30
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource:
+                - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:FinanceBot/Secret-*"
+      Environment:
+        Variables:
+          SECRETS: !Sub "{{resolve:secretsmanager:FinanceBot/Secret}}"
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:553035198032:layer:git-lambda2:8"
 
 Outputs:
   TelegramApi:

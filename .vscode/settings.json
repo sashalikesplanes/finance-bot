@@ -1,7 +1,8 @@
 {
   "python.defaultInterpreterPath": "/Users/sasha/Library/Caches/pypoetry/virtualenvs/finance-bot-YgUEvKJk-py3.12/bin/python",
   "python.analysis.extraPaths": [
-    "/Users/sasha/Library/Caches/pypoetry/virtualenvs/beancount-main-B3FUl9zq-py3.12/lib/python3.12/site-packages"
+    "/Users/sasha/Library/Caches/pypoetry/virtualenvs/beancount-main-B3FUl9zq-py3.12/lib/python3.12/site-packages",
+    "./finance_bot"
   ],
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic"
