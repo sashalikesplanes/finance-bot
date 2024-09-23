@@ -10,7 +10,7 @@ Globals:
     Tags:
       project: "Finance-Bot"
     Architectures:
-      - arm64
+      - x86_64
     LoggingConfig:
       LogGroup: !Sub /aws/lambda/${AWS::StackName}
       LogFormat: JSON

@@ -8,7 +8,7 @@ def run_deploy():
         check=True,
     )
     subprocess.run("sam build", shell=True, check=True)
-    subprocess.run("sam deploy", shell=True, check=True)
+    subprocess.run("sam deploy --no-confirm-changeset", shell=True, check=True)
 
 
 if __name__ == "__main__":
