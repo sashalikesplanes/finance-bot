@@ -36,6 +36,22 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.warn(f"Update has no chat")
         return
 
+    # Get the first argument
+    if context.args and len(context.args) > 0:
+        try:
+            n_months_ahead = int(context.args[0])
+            if n_months_ahead < 0:
+                raise ValueError("Number must be positive")
+        except ValueError:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Error: Please provide a positive integer for the number of months ahead.",
+                parse_mode="HTML",
+            )
+            return
+    else:
+        n_months_ahead = 0  # Default value if no argument is provided
+
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id, action=ChatAction.TYPING
     )
@@ -51,7 +67,7 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     options["filtered"] = True
-    options["n_months_ahead"] = 0
+    options["n_months_ahead"] = n_months_ahead
 
     accounts, income_assigned, last_date = generate_monthly_budget_report(
         entries, options
