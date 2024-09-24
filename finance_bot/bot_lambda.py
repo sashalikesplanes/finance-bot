@@ -3,15 +3,10 @@ import json
 import asyncio
 import os
 import logging
-import subprocess
-from git import Repo
-
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram._update import Update
 from telegram.constants import ChatAction
-from telegram._replykeyboardremove import ReplyKeyboardRemove
-from telegram._replykeyboardmarkup import ReplyKeyboardMarkup
-from beancount import loader
+from beancount_file import write_to_file, get_entries
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -24,6 +19,7 @@ from telegram.ext import (
 
 from monthly_budget import generate_monthly_budget_report
 
+
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -35,8 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global secrets
-
     logger.info(f"Got update")
     if update.effective_chat is None:
         logger.warn(f"Update has no chat")
@@ -46,65 +40,37 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id, action=ChatAction.TYPING
     )
 
-    REPO_DIR = "/tmp/beancount-repo"
+    try:
+        entries, options = get_entries()
+    except Exception as e:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Error loading Beancount file:\n{str(e)}",
+            parse_mode="HTML",
+        )
+        return
 
-    # Use the GitHub token from secrets
-    github_token = secrets["github_token"]
-    auth_repo_url = (
-        f"https://{github_token}@github.com/sashalikesplanes/beancount-file.git"
+    options["filtered"] = True
+    options["n_months_ahead"] = 0
+
+    accounts, income_assigned, last_date = generate_monthly_budget_report(
+        entries, options
     )
 
-    try:
+    # construct a table with accounts and assigned and available
+    table = f"Budget Report for {last_date.strftime('%B %Y')}\n\n"
+    table += "<pre>\n"
+    table += "| Account           | Assigned  | Available |\n"
+    table += "|-------------------|----------:|----------:|\n"
+    for account in accounts:
+        table += f"| {account['account_name']:<17} | {account['assigned_this_month']:9.2f} | {account['remaining']:9.2f} |\n"
+    table += "</pre>"
 
-        if os.path.exists(REPO_DIR):
-            logger.info(f"Updating existing repository at {REPO_DIR}")
-            repo = Repo(REPO_DIR)
-            repo.remotes.origin.pull()
-        else:
-            logger.info(f"Cloning repository to {REPO_DIR}")
-            Repo.clone_from(auth_repo_url, REPO_DIR, depth=1)
-
-        # Load the Beancount file
-        filename = os.path.join(REPO_DIR, "main.beancount")
-        entries, errors, options = loader.load_file(filename, log_errors=logger.error)
-
-        if errors:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"Error loading Beancount file:\n{str(errors)}",
-                parse_mode="HTML",
-            )
-            return
-
-        options["filtered"] = True
-        options["n_months_ahead"] = 0
-
-        accounts, income_assigned, last_date = generate_monthly_budget_report(
-            entries, options
-        )
-
-        # construct a table with accounts and assigned and available
-        table = f"Budget Report for {last_date.strftime('%B %Y')}\n\n"
-        table += "<pre>\n"
-        table += "| Account           | Assigned  | Available |\n"
-        table += "|-------------------|----------:|----------:|\n"
-        for account in accounts:
-            table += f"| {account['account_name']:<17} | {account['assigned_this_month']:9.2f} | {account['remaining']:9.2f} |\n"
-        table += "</pre>"
-
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=table,
-            parse_mode="HTML",
-        )
-
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"An error occurred while fetching the latest data:\n{str(e)}",
-            parse_mode="HTML",
-        )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=table,
+        parse_mode="HTML",
+    )
 
 
 # Stages
@@ -186,45 +152,27 @@ async def select_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     context.user_data["date"] = query.data
 
+    expense_categories = [
+        "HouseTax",
+        "Transport",
+        "LuxTrip24Oct",
+        "TurkeyTrip24Oct",
+        "PersonalCare",
+        "BankFees",
+        "MyLove",
+        "EatOut",
+        "Tobacco",
+        "Clothes",
+        "Family",
+        "Education",
+        "Party",
+        "Forgotten",
+        "Groceries",
+    ]
+
     keyboard = [
-        [InlineKeyboardButton("Expenses:Coffee", callback_data=f"Expenses:Coffee")],
-        [InlineKeyboardButton("Expenses:Food", callback_data=f"Expenses:Food")],
-        [
-            InlineKeyboardButton(
-                "Expenses:Transportation",
-                callback_data=f"Expenses:Transportation",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Entertainment",
-                callback_data=f"Expenses:Entertainment",
-            )
-        ],
-        [InlineKeyboardButton("Expenses:Other", callback_data=f"Expenses:Other")],
-        [InlineKeyboardButton("Expenses:Kids", callback_data=f"Expenses:Kids")],
-        [InlineKeyboardButton("Expenses:Rent", callback_data=f"Expenses:Rent")],
-        [
-            InlineKeyboardButton(
-                "Expenses:Utilities",
-                callback_data=f"Expenses:Utilities",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Insurance",
-                callback_data=f"Expenses:Insurance",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Healthcare",
-                callback_data=f"Expenses:Healthcare",
-            )
-        ],
-        [InlineKeyboardButton("Expenses:Clothing", callback_data=f"Expenses:Clothing")],
-        [InlineKeyboardButton("Expenses:Gifts", callback_data=f"Expenses:Gifts")],
-        [InlineKeyboardButton("Expenses:Fees", callback_data=f"Expenses:Fees")],
+        [InlineKeyboardButton(expense_category, callback_data=f"{expense_category}")]
+        for expense_category in expense_categories
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     # Send message with text and appended InlineKeyboard
@@ -249,23 +197,17 @@ async def select_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await query.answer()
 
     context.user_data["expense"] = query.data
+    accounts = [
+        "Assets:NL:ING:Checking59",
+        "Assets:NL:ING:Checking34",
+        "Assets:BE:WISE:Checking",
+        "Liabilities:NL:AMEX:Green",
+        "Liabilities:NL:ING:CreditCard",
+    ]
 
     keyboard = [
-        [
-            InlineKeyboardButton("Assets:ING", callback_data=f"Assets:ING"),
-        ],
-        [
-            InlineKeyboardButton("Assets:Cash", callback_data=f"Assets:Cash"),
-        ],
-        [
-            InlineKeyboardButton("Assets:Wise", callback_data=f"Assets:Wise"),
-        ],
-        [
-            InlineKeyboardButton("Liabilities:Amex", callback_data=f"Liabilities:Amex"),
-        ],
-        [
-            InlineKeyboardButton("Liabilities:Visa", callback_data=f"Liabilities:Visa"),
-        ],
+        [InlineKeyboardButton(account, callback_data=f"{account}")]
+        for account in accounts
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(text="Select an account", reply_markup=reply_markup)
@@ -280,16 +222,43 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         update.callback_query is None
         or update.callback_query.data is None
         or context.user_data is None
+        or update.effective_chat is None
     ):
         logger.warn(f"Update has no callback query")
         return ConversationHandler.END
 
-    context.user_data["account"] = update.callback_query.data
     query = update.callback_query
     await query.answer()
+
+    context.user_data["account"] = update.callback_query.data
+
+    current_year = datetime.datetime.now().year
+    formatted_date = f"{current_year}-{context.user_data['date']}"
+
+    new_entry = f"{formatted_date} * \"{context.user_data['payee']}\"\n"
+    new_entry += f"    Expenses:Variable:{context.user_data['expense']} {context.user_data['amount']} EUR\n"
+    new_entry += f"    {context.user_data['account']}\n"
+
     await query.edit_message_text(
-        text=f"You are done. You chose {str(context.user_data)}"
+        text=f"Summary:\n<pre>{new_entry}</pre>", parse_mode="HTML"
     )
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id, action=ChatAction.TYPING
+    )
+    try:
+        write_to_file(new_entry)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Entry added successfully",
+        )
+    except Exception as e:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Error writing to Beancount file:\n{str(e)}",
+            parse_mode="HTML",
+        )
+
+    await budget_report(update, context)
     return ConversationHandler.END
 
 
@@ -308,25 +277,15 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 # Global variable to store the initialized application
 initialized_app = None
-secrets = {}
-
-
-async def get_secrets():
-    global secrets
-    secrets = json.loads(os.environ["SECRETS"])
 
 
 async def main(event, context):
     global initialized_app
-    global secrets
+
+    secrets = json.loads(os.environ["SECRETS"])
 
     if initialized_app is None:
         logger.info(f"Getting secrets")
-
-        await get_secrets()
-        logger.info(
-            f"Got secrets: github_token: {secrets['github_token'][:5]}..., telegram_token: {secrets['telegram_token'][:5]}..."
-        )
 
         # Initialize the application only if it hasn't been initialized yet
         budget_handler = CommandHandler("budget", budget_report)

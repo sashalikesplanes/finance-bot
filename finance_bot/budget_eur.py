@@ -2,7 +2,6 @@ from beancount.core.data import (
     Entries,
     Transaction,
     create_simple_posting,
-    Amount,
 )
 
 __plugins__ = ["budget_eur"]
