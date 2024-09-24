@@ -1,3 +1,4 @@
+import datetime
 import json
 import asyncio
 import os
@@ -107,12 +108,10 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Stages
-SELECT_EXPENSE, SELECT_ACCOUNT, SUMMARY = range(3)
+ENTER_PAYEE, SELECT_DATE, SELECT_EXPENSE, SELECT_ACCOUNT, SUMMARY = range(5)
 
 
 async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Send message on `/start`."""
-    # Get user that sent /start and log his name
     if update.message is None or update.message.from_user is None:
         logger.warn(f"Update has no message")
         return ConversationHandler.END
@@ -123,94 +122,113 @@ async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         "Enter the amount in EUR",
         reply_markup=ForceReply(input_field_placeholder="420.69"),
     )
+    return ENTER_PAYEE
+
+
+async def enter_payee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if (
+        update.message is None
+        or update.message.from_user is None
+        or context.user_data is None
+    ):
+        logger.warn(f"Update has no message")
+        return ConversationHandler.END
+
+    context.user_data["amount"] = update.message.text
+
+    user = update.message.from_user
+    logger.info("User %s started the conversation.", user.first_name)
+    await update.message.reply_text(
+        "Enter the payee",
+        reply_markup=ForceReply(input_field_placeholder="ALBERT HEIJN"),
+    )
+    return SELECT_DATE
+
+
+async def select_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Get user that sent /start and log his name
+    if (
+        update.message is None
+        or update.message.from_user is None
+        or context.user_data is None
+    ):
+        logger.warn(f"Update has no message")
+        return ConversationHandler.END
+    # get dates from today to 6 days ago
+    dates = [datetime.datetime.now() - datetime.timedelta(days=i) for i in range(6)]
+    date_strs = [date.strftime("%m-%d") for date in dates]
+    date_strs.sort()
+
+    context.user_data["payee"] = update.message.text
+
+    keyboard = [
+        [
+            InlineKeyboardButton(f"{date_str}", callback_data=f"{date_str}")
+            for date_str in date_strs
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Send message with text and appended InlineKeyboard
+    await update.message.reply_text("Select a date", reply_markup=reply_markup)
+    # Tell ConversationHandler that we're in state `FIRST` now
     return SELECT_EXPENSE
 
 
 async def select_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Send message on `/start`."""
     # Get user that sent /start and log his name
-    if update.message is None or update.message.from_user is None:
+    if update.callback_query is None or context.user_data is None:
         logger.warn(f"Update has no message")
         return ConversationHandler.END
 
-    amount_entered = update.message.text
-    logger.info(f"Amount entered: {amount_entered}")
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["date"] = query.data
 
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "Expenses:Coffee", callback_data=f"{amount_entered}#Expenses:Coffee"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Food", callback_data=f"{amount_entered}#Expenses:Food"
-            )
-        ],
+        [InlineKeyboardButton("Expenses:Coffee", callback_data=f"Expenses:Coffee")],
+        [InlineKeyboardButton("Expenses:Food", callback_data=f"Expenses:Food")],
         [
             InlineKeyboardButton(
                 "Expenses:Transportation",
-                callback_data=f"{amount_entered}#Expenses:Transportation",
+                callback_data=f"Expenses:Transportation",
             )
         ],
         [
             InlineKeyboardButton(
                 "Expenses:Entertainment",
-                callback_data=f"{amount_entered}#Expenses:Entertainment",
+                callback_data=f"Expenses:Entertainment",
             )
         ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Other", callback_data=f"{amount_entered}#Expenses:Other"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Kids", callback_data=f"{amount_entered}#Expenses:Kids"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Rent", callback_data=f"{amount_entered}#Expenses:Rent"
-            )
-        ],
+        [InlineKeyboardButton("Expenses:Other", callback_data=f"Expenses:Other")],
+        [InlineKeyboardButton("Expenses:Kids", callback_data=f"Expenses:Kids")],
+        [InlineKeyboardButton("Expenses:Rent", callback_data=f"Expenses:Rent")],
         [
             InlineKeyboardButton(
                 "Expenses:Utilities",
-                callback_data=f"{amount_entered}#Expenses:Utilities",
+                callback_data=f"Expenses:Utilities",
             )
         ],
         [
             InlineKeyboardButton(
                 "Expenses:Insurance",
-                callback_data=f"{amount_entered}#Expenses:Insurance",
+                callback_data=f"Expenses:Insurance",
             )
         ],
         [
             InlineKeyboardButton(
                 "Expenses:Healthcare",
-                callback_data=f"{amount_entered}#Expenses:Healthcare",
+                callback_data=f"Expenses:Healthcare",
             )
         ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Clothing", callback_data=f"{amount_entered}#Expenses:Clothing"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Gifts", callback_data=f"{amount_entered}#Expenses:Gifts"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "Expenses:Fees", callback_data=f"{amount_entered}#Expenses:Fees"
-            )
-        ],
+        [InlineKeyboardButton("Expenses:Clothing", callback_data=f"Expenses:Clothing")],
+        [InlineKeyboardButton("Expenses:Gifts", callback_data=f"Expenses:Gifts")],
+        [InlineKeyboardButton("Expenses:Fees", callback_data=f"Expenses:Fees")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     # Send message with text and appended InlineKeyboard
-    await update.message.reply_text(
+    await query.edit_message_text(
         "Select an expense category", reply_markup=reply_markup
     )
     # Tell ConversationHandler that we're in state `FIRST` now
@@ -219,37 +237,34 @@ async def select_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def select_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Show new choice of buttons"""
-    if update.callback_query is None:
+    if (
+        update.callback_query is None
+        or update.callback_query.data is None
+        or context.user_data is None
+    ):
         logger.warn(f"Update has no callback query")
         return ConversationHandler.END
 
     query = update.callback_query
     await query.answer()
+
+    context.user_data["expense"] = query.data
+
     keyboard = [
         [
-            InlineKeyboardButton(
-                "Assets:ING", callback_data=f"{query.data}#Assets:ING"
-            ),
+            InlineKeyboardButton("Assets:ING", callback_data=f"Assets:ING"),
         ],
         [
-            InlineKeyboardButton(
-                "Assets:Cash", callback_data=f"{query.data}#Assets:Cash"
-            ),
+            InlineKeyboardButton("Assets:Cash", callback_data=f"Assets:Cash"),
         ],
         [
-            InlineKeyboardButton(
-                "Assets:Wise", callback_data=f"{query.data}#Assets:Wise"
-            ),
+            InlineKeyboardButton("Assets:Wise", callback_data=f"Assets:Wise"),
         ],
         [
-            InlineKeyboardButton(
-                "Liabilities:Amex", callback_data=f"{query.data}#Liabilities:Amex"
-            ),
+            InlineKeyboardButton("Liabilities:Amex", callback_data=f"Liabilities:Amex"),
         ],
         [
-            InlineKeyboardButton(
-                "Liabilities:Visa", callback_data=f"{query.data}#Liabilities:Visa"
-            ),
+            InlineKeyboardButton("Liabilities:Visa", callback_data=f"Liabilities:Visa"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -261,13 +276,20 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Returns `ConversationHandler.END`, which tells the
     ConversationHandler that the conversation is over.
     """
-    if update.callback_query is None:
+    if (
+        update.callback_query is None
+        or update.callback_query.data is None
+        or context.user_data is None
+    ):
         logger.warn(f"Update has no callback query")
         return ConversationHandler.END
 
+    context.user_data["account"] = update.callback_query.data
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(text=f"You are done. You chose {query.data}")
+    await query.edit_message_text(
+        text=f"You are done. You chose {str(context.user_data)}"
+    )
     return ConversationHandler.END
 
 
@@ -323,8 +345,14 @@ async def main(event, context):
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler("add", enter_amount)],
             states={
+                ENTER_PAYEE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, enter_payee),
+                ],
+                SELECT_DATE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, select_date),
+                ],
                 SELECT_EXPENSE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, select_expense),
+                    CallbackQueryHandler(select_expense),
                 ],
                 SELECT_ACCOUNT: [CallbackQueryHandler(select_account)],
                 SUMMARY: [
