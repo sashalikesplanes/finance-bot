@@ -17,7 +17,7 @@ from telegram.ext import (
     filters,
 )
 
-from reports import generate_monthly_budget_report
+from reports import generate_account_report, generate_monthly_budget_report
 
 
 # Enable logging
@@ -69,19 +69,39 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     options["filtered"] = True
     options["n_months_ahead"] = n_months_ahead
 
-    accounts, income_assigned, last_date = generate_monthly_budget_report(
-        entries, options
-    )
+    table = generate_monthly_budget_report(entries, options)
 
     # construct a table with accounts and assigned and available
-    table = f"Budget Report for {last_date.strftime('%B %Y')}\n\n"
-    table += "<pre>\n"
-    table += "| Account           | Assigned  | Available |\n"
-    table += "|-------------------|----------:|----------:|\n"
-    for account in accounts:
-        table += f"| {account['account_name']:<17} | {account['assigned_this_month']:9.2f} | {account['remaining']:9.2f} |\n"
-    table += "</pre>"
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=table,
+        parse_mode="HTML",
+    )
 
+
+async def account_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"Got update")
+    if update.effective_chat is None:
+        logger.warn(f"Update has no chat")
+        return
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id, action=ChatAction.TYPING
+    )
+
+    try:
+        entries, options = get_entries()
+    except Exception as e:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Error loading Beancount file:\n{str(e)}",
+            parse_mode="HTML",
+        )
+        return
+
+    table = generate_account_report(entries, options)
+
+    # construct a table with accounts and assigned and available
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=table,
@@ -90,7 +110,15 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Stages
-ENTER_PAYEE, SELECT_DATE, SELECT_EXPENSE, SELECT_ACCOUNT, SUMMARY = range(5)
+(
+    ENTER_PAYEE,
+    SELECT_DATE,
+    SELECT_TYPE,
+    SELECT_INCOME,
+    SELECT_CATEGORY,
+    SELECT_ACCOUNT,
+    SUMMARY,
+) = range(7)
 
 
 async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -153,10 +181,41 @@ async def select_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     # Send message with text and appended InlineKeyboard
     await update.message.reply_text("Select a date", reply_markup=reply_markup)
     # Tell ConversationHandler that we're in state `FIRST` now
-    return SELECT_EXPENSE
+    return SELECT_TYPE
 
 
-async def select_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def select_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Get user that sent /start and log his name
+    if update.callback_query is None or context.user_data is None:
+        logger.warn(f"Update has no message")
+        return ConversationHandler.END
+    # get dates from today to 6 days ago
+    dates = [datetime.datetime.now() - datetime.timedelta(days=i) for i in range(6)]
+    date_strs = [date.strftime("%m-%d") for date in dates]
+    date_strs.sort()
+
+    query = update.callback_query
+    await query.answer()
+    context.user_data["date"] = query.data
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Income", callback_data="Income"),
+            InlineKeyboardButton(
+                "Expenses:Variable", callback_data="Expenses:Variable"
+            ),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Send message with text and appended InlineKeyboard
+    await update.callback_query.edit_message_text(
+        "Select type", reply_markup=reply_markup
+    )
+    # Tell ConversationHandler that we're in state `FIRST` now
+    return SELECT_CATEGORY
+
+
+async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Send message on `/start`."""
     # Get user that sent /start and log his name
     if update.callback_query is None or context.user_data is None:
@@ -166,29 +225,38 @@ async def select_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = update.callback_query
     await query.answer()
 
-    context.user_data["date"] = query.data
+    context.user_data["type"] = query.data
 
-    expense_categories = [
-        "HouseTax",
-        "Transport",
-        "LuxTrip24Oct",
-        "TurkeyTrip24Oct",
-        "PersonalCare",
-        "BankFees",
-        "MyLove",
-        "EatOut",
-        "Tobacco",
-        "Clothes",
-        "Family",
-        "Education",
-        "Party",
-        "Forgotten",
-        "Groceries",
-    ]
+    all_categories = {
+        "Expenses:Variable": [
+            "HouseTax",
+            "Transport",
+            "LuxTrip24Oct",
+            "TurkeyTrip24Oct",
+            "PersonalCare",
+            "BankFees",
+            "MyLove",
+            "EatOut",
+            "Tobacco",
+            "Clothes",
+            "Family",
+            "Education",
+            "Party",
+            "Forgotten",
+            "Groceries",
+        ],
+        "Income": ["NL:Fung:Salary", "Interest"],
+    }
+
+    if context.user_data["type"] not in all_categories:
+        await query.edit_message_text("Invalid type")
+        return ConversationHandler.END
+
+    categories = all_categories[context.user_data["type"]]
 
     keyboard = [
-        [InlineKeyboardButton(expense_category, callback_data=f"{expense_category}")]
-        for expense_category in expense_categories
+        [InlineKeyboardButton(category, callback_data=f"{category}")]
+        for category in categories
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     # Send message with text and appended InlineKeyboard
@@ -212,11 +280,13 @@ async def select_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = update.callback_query
     await query.answer()
 
-    context.user_data["expense"] = query.data
+    context.user_data["category"] = query.data
     accounts = [
         "Assets:NL:ING:Checking59",
         "Assets:NL:ING:Checking34",
         "Assets:BE:WISE:Checking",
+        "Assets:BE:WISE:Savings",
+        "Assets:BE:WISE:Investments",
         "Liabilities:NL:AMEX:Green",
         "Liabilities:NL:ING:CreditCard",
     ]
@@ -251,8 +321,12 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     current_year = datetime.datetime.now().year
     formatted_date = f"{current_year}-{context.user_data['date']}"
 
+    entry_amount = context.user_data["amount"]
+    if context.user_data["type"] == "Income":
+        entry_amount = f"-{entry_amount}"
+
     new_entry = f"{formatted_date} * \"{context.user_data['payee']}\"\n"
-    new_entry += f"    Expenses:Variable:{context.user_data['expense']} {context.user_data['amount']} EUR\n"
+    new_entry += f"    {context.user_data['type']}:{context.user_data['category']} {entry_amount} EUR\n"
     new_entry += f"    {context.user_data['account']}"
 
     await query.edit_message_text(
@@ -301,24 +375,24 @@ async def main(event, context):
     secrets = json.loads(os.environ["SECRETS"])
 
     if initialized_app is None:
-        logger.info(f"Getting secrets")
-
-        # Initialize the application only if it hasn't been initialized yet
-        budget_handler = CommandHandler("budget", budget_report)
-
         app = ApplicationBuilder().token(secrets["telegram_token"]).build()
-        logger.info(f"built app")
-        app.add_handler(budget_handler)
-        logger.info(f"added handlers")
 
-        # Setup conversation handler with the states FIRST and SECOND
-        # Use the pattern parameter to pass CallbackQueries with specific
-        # data pattern to the corresponding handlers.
-        # ^ means "start of line/string"
-        # $ means "end of line/string"
-        # So ^ABC$ will only allow 'ABC'
-        conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("add", enter_amount)],
+        allowed_user_ids = [int(secrets["sasha_user_id"])]
+
+        budget_handler = CommandHandler(
+            "budget", budget_report, filters.User(user_id=allowed_user_ids)
+        )
+        account_handler = CommandHandler(
+            "accounts",
+            account_report,
+            filters.User(user_id=allowed_user_ids),
+        )
+        add_handler = ConversationHandler(
+            entry_points=[
+                CommandHandler(
+                    "add", enter_amount, filters.User(user_id=allowed_user_ids)
+                )
+            ],
             states={
                 ENTER_PAYEE: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, enter_payee),
@@ -326,8 +400,11 @@ async def main(event, context):
                 SELECT_DATE: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, select_date),
                 ],
-                SELECT_EXPENSE: [
-                    CallbackQueryHandler(select_expense),
+                SELECT_TYPE: [
+                    CallbackQueryHandler(select_type),
+                ],
+                SELECT_CATEGORY: [
+                    CallbackQueryHandler(select_category),
                 ],
                 SELECT_ACCOUNT: [CallbackQueryHandler(select_account)],
                 SUMMARY: [
@@ -338,7 +415,7 @@ async def main(event, context):
         )
 
         # Add ConversationHandler to application that will be used for handling updates
-        app.add_handler(conv_handler)
+        app.add_handlers([budget_handler, account_handler, add_handler])
 
         # Initialize the application
         logger.info(f"initializing app")

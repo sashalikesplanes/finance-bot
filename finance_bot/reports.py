@@ -89,18 +89,72 @@ def generate_monthly_budget_report(entries, options):
     for account in accounts:
         account["account_name"] = account["account"].split(":")[2]
         account["remaining"] = account["assigned"] - account["spent"]
-    return accounts, income_assigned, last_date
+
+    table = f"Budget Report for {last_date.strftime('%B %Y')}\n\n"
+    table += "<pre>\n"
+    table += "| Account           | Assigned  | Available |\n"
+    table += "|-------------------|----------:|----------:|\n"
+    for account in accounts:
+        table += f"| {account['account_name']:<17} | {account['assigned_this_month']:9.2f} | {account['remaining']:9.2f} |\n"
+    table += "</pre>"
+
+    return table
+
+
+def generate_account_report(entries, options):
+    current_date = date.today()
+
+    # Query for budget allocations
+    current_accounts_query = f"""SELECT account, SUM(position) as position
+    WHERE (account ~ "Assets:" or account ~ "Liabilities:")
+      and date <= {current_date}
+    """
+    current_accounts = query.run_query(entries, options, current_accounts_query)
+
+    accounts = []
+    for row in current_accounts[1]:
+        position = 0
+        row_position = row.position.get_only_position()
+        if row_position is not None:
+            if row_position.units.currency != "EUR":
+                raise ValueError(f"Unknown currency: {row_position.units.currency}")
+            position = row_position.units.number
+
+        account_name = row.account
+
+        accounts.append({"account": account_name, "position": position})
+    accounts = sorted(accounts, key=lambda x: x["account"])
+
+    # make a table
+    table = f"Account Report for {current_date}\n\n"
+    table += "<pre>\n"
+    table += "| Account                     | € Position |\n"
+    table += "|-----------------------------|-----------:|\n"
+    for account in accounts:
+        table += f"| {account['account']:<27} | {account['position']:10.2f} |\n"
+    table += "</pre>"
+
+    return table
 
 
 def main():
     filename = "main.beancount"
     entries, errors, options = loader.load_file(filename, log_errors=sys.stderr)
 
-    options["filtered"] = True
-    options["n_months_ahead"] = 0
+    report_type = sys.argv[1]
 
-    report = generate_monthly_budget_report(entries, options)
-    print(report)
+    if report_type == "budget":
+        options["filtered"] = True
+        options["n_months_ahead"] = 0
+
+        report = generate_monthly_budget_report(entries, options)
+        print(report)
+
+    elif report_type == "account":
+        report = generate_account_report(entries, options)
+        print(report)
+    else:
+        raise ValueError(f"Unknown report type: {report_type}")
 
 
 if __name__ == "__main__":
