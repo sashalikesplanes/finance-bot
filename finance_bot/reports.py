@@ -39,10 +39,10 @@ def generate_monthly_budget_report(entries, options):
     monthly_entries = query.run_query(entries, options, monthly_entries_query)
 
     accounts = {}
-    income_assigned = Decimal(0)
+    income_available = Decimal(0)
     for row in monthly_entries[1]:
         if row.account == "Income:Available":
-            income_assigned += row.position.units.number
+            income_available += row.position.units.number
             continue
 
         if row.account not in accounts:
@@ -97,6 +97,8 @@ def generate_monthly_budget_report(entries, options):
     for account in accounts:
         table += f"| {account['account_name']:<17} | {account['assigned_this_month']:9.2f} | {account['remaining']:9.2f} |\n"
     table += "</pre>"
+    if not options["filtered"]:
+        table += f"Ready to assign: {income_available:9.2f} EUR\n"
 
     return table
 
