@@ -17,6 +17,7 @@ from telegram.ext import (
     filters,
 )
 
+from constants import get_accounts, get_counterparties
 from reports import generate_account_report, generate_monthly_budget_report
 
 
@@ -50,7 +51,12 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
     else:
-        n_months_ahead = 0  # Default value if no argument is provided
+        n_months_ahead = 0
+
+    if context.args and len(context.args) > 1:
+        filtered = context.args[1].lower() != "full"
+    else:
+        filtered = True
 
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id, action=ChatAction.TYPING
@@ -66,7 +72,7 @@ async def budget_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    options["filtered"] = True
+    options["filtered"] = filtered
     options["n_months_ahead"] = n_months_ahead
 
     table = generate_monthly_budget_report(entries, options)
@@ -115,7 +121,7 @@ async def account_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     SELECT_DATE,
     SELECT_TYPE,
     SELECT_INCOME,
-    SELECT_CATEGORY,
+    SELECT_COUNTERPARTY,
     SELECT_ACCOUNT,
     SUMMARY,
 ) = range(7)
@@ -201,9 +207,8 @@ async def select_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     keyboard = [
         [
             InlineKeyboardButton("Income", callback_data="Income"),
-            InlineKeyboardButton(
-                "Expenses:Variable", callback_data="Expenses:Variable"
-            ),
+            InlineKeyboardButton("Expense", callback_data="Expenses:Variable"),
+            InlineKeyboardButton("Transfer", callback_data="Transfer"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -212,10 +217,12 @@ async def select_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         "Select type", reply_markup=reply_markup
     )
     # Tell ConversationHandler that we're in state `FIRST` now
-    return SELECT_CATEGORY
+    return SELECT_COUNTERPARTY
 
 
-async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def select_counterparty(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Send message on `/start`."""
     # Get user that sent /start and log his name
     if update.callback_query is None or context.user_data is None:
@@ -227,47 +234,28 @@ async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     context.user_data["type"] = query.data
 
-    all_categories = {
-        "Expenses:Variable": [
-            "HouseTax",
-            "Transport",
-            "LuxTrip24Oct",
-            "TurkeyTrip24Oct",
-            "PersonalCare",
-            "BankFees",
-            "MyLove",
-            "EatOut",
-            "Tobacco",
-            "Clothes",
-            "Family",
-            "Education",
-            "Party",
-            "Forgotten",
-            "Groceries",
-        ],
-        "Income": ["NL:Fung:Salary", "Interest"],
-    }
+    all_counterparties = get_counterparties()
 
-    if context.user_data["type"] not in all_categories:
+    if context.user_data["type"] not in all_counterparties:
         await query.edit_message_text("Invalid type")
         return ConversationHandler.END
 
-    categories = all_categories[context.user_data["type"]]
+    options = all_counterparties[context.user_data["type"]]
 
     keyboard = [
         [InlineKeyboardButton(category, callback_data=f"{category}")]
-        for category in categories
+        for category in options
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     # Send message with text and appended InlineKeyboard
-    await query.edit_message_text(
-        "Select an expense category", reply_markup=reply_markup
-    )
+    await query.edit_message_text("Select a counterparty", reply_markup=reply_markup)
     # Tell ConversationHandler that we're in state `FIRST` now
     return SELECT_ACCOUNT
 
 
-async def select_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def select_account_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Show new choice of buttons"""
     if (
         update.callback_query is None
@@ -280,20 +268,10 @@ async def select_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = update.callback_query
     await query.answer()
 
-    context.user_data["category"] = query.data
-    accounts = [
-        "Assets:NL:ING:Checking59",
-        "Assets:NL:ING:Checking34",
-        "Assets:BE:WISE:Checking",
-        "Assets:BE:WISE:Savings",
-        "Assets:BE:WISE:Investments",
-        "Liabilities:NL:AMEX:Green",
-        "Liabilities:NL:ING:CreditCard",
-    ]
-
+    context.user_data["counterparty"] = query.data
     keyboard = [
         [InlineKeyboardButton(account, callback_data=f"{account}")]
-        for account in accounts
+        for account in get_accounts()
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(text="Select an account", reply_markup=reply_markup)
@@ -325,8 +303,14 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if context.user_data["type"] == "Income":
         entry_amount = f"-{entry_amount}"
 
+    entry_counterparty = (
+        f"{context.user_data['type']}:{context.user_data['counterparty']}"
+    )
+    if context.user_data["type"] == "Transfer":
+        entry_counterparty = f"{context.user_data['counterparty']}"
+
     new_entry = f"{formatted_date} * \"{context.user_data['payee']}\"\n"
-    new_entry += f"    {context.user_data['type']}:{context.user_data['category']} {entry_amount} EUR\n"
+    new_entry += f"    {entry_counterparty} {entry_amount} EUR\n"
     new_entry += f"    {context.user_data['account']}"
 
     await query.edit_message_text(
@@ -403,10 +387,10 @@ async def main(event, context):
                 SELECT_TYPE: [
                     CallbackQueryHandler(select_type),
                 ],
-                SELECT_CATEGORY: [
-                    CallbackQueryHandler(select_category),
+                SELECT_COUNTERPARTY: [
+                    CallbackQueryHandler(select_counterparty),
                 ],
-                SELECT_ACCOUNT: [CallbackQueryHandler(select_account)],
+                SELECT_ACCOUNT: [CallbackQueryHandler(select_account_handler)],
                 SUMMARY: [
                     CallbackQueryHandler(end),
                 ],
