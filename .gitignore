@@ -1,6 +1,7 @@
 *.zip
 *.pyc
 packaged.yml
+finance_bot/main.beancount
 tmp.py
 .aws-sam/
 .mypy_cache/
