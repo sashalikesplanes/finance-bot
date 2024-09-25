@@ -27,8 +27,31 @@ def write_to_file(str):
 
     filename = os.path.join(REPO_DIR, "main.beancount")
 
-    with open(os.path.join(REPO_DIR, "main.beancount"), "a") as f:
-        f.write(f"\n{str}")
+    with open(filename, "r+") as f:
+        content = f.read()
+        future_marker = ";;; FUTURE ;;;"
+        if future_marker in content:
+            # Find the position of the future marker
+            insert_position = content.index(future_marker)
+            # Check if the character before the marker is a newline
+            if insert_position > 0 and content[insert_position - 1] == "\n":
+                insert_position -= 1
+            if insert_position > 0 and content[insert_position - 1] == "\n":
+                insert_position -= 1
+            # Move the file pointer to the insert position
+            f.seek(insert_position)
+            # Read the rest of the file
+            rest_of_file = f.read()
+            # Move back to the insert position
+            f.seek(insert_position)
+            # Write the new content followed by a newline
+            f.write(f"\n{str}\n")
+            # Write the rest of the file
+            f.write(rest_of_file)
+        else:
+            # If the future marker is not found, append to the end
+            f.seek(0, 2)  # Move to the end of the file
+            f.write(f"\n{str}\n")
 
     _, errors, _ = loader.load_file(filename, log_errors=logger.error)
 
