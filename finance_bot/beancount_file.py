@@ -28,7 +28,7 @@ def write_to_file(str):
     filename = os.path.join(REPO_DIR, "main.beancount")
 
     with open(os.path.join(REPO_DIR, "main.beancount"), "a") as f:
-        f.write(f"\n{str}\n")
+        f.write(f"\n{str}")
 
     _, errors, _ = loader.load_file(filename, log_errors=logger.error)
 

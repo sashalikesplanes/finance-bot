@@ -253,7 +253,7 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     new_entry = f"{formatted_date} * \"{context.user_data['payee']}\"\n"
     new_entry += f"    Expenses:Variable:{context.user_data['expense']} {context.user_data['amount']} EUR\n"
-    new_entry += f"    {context.user_data['account']}\n"
+    new_entry += f"    {context.user_data['account']}"
 
     await query.edit_message_text(
         text=f"Summary:\n<pre>{new_entry}</pre>", parse_mode="HTML"
