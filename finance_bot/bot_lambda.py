@@ -17,7 +17,7 @@ from telegram.ext import (
     filters,
 )
 
-from monthly_budget import generate_monthly_budget_report
+from reports import generate_monthly_budget_report
 
 
 # Enable logging
