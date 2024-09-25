@@ -44,7 +44,14 @@ async def process_update_in_lambda(event, context):
 
 
 def lambda_handler(event, context):
-    return asyncio.get_event_loop().run_until_complete(main(event, context))
+    headers = event.get("headers")
+    secret_token = headers.get("X-Telegram-Bot-Api-Secret-Token") or headers.get(
+        "x-telegram-bot-api-secret-token"
+    )
+
+    if secret_token != secrets["telegram_secret_token"]:
+        return {"statusCode": 401, "body": "Unauthorized"}
+
     return asyncio.get_event_loop().run_until_complete(
         process_update_in_lambda(event, context)
     )
