@@ -33,6 +33,8 @@ def write_to_file(str):
     _, errors, _ = loader.load_file(filename, log_errors=logger.error)
 
     if errors:
+        repo = Repo(REPO_DIR)
+        repo.head.reset(index=True, working_tree=True)
         raise Exception(f"Error loading Beancount file: {errors}")
 
     repo = Repo(REPO_DIR)
