@@ -116,7 +116,8 @@ async def account_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     SELECT_COUNTERPARTY,
     SELECT_ACCOUNT,
     SUMMARY,
-) = range(7)
+    CONFIRM_ENTRY,
+) = range(8)
 
 
 async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -270,7 +271,27 @@ async def select_account_handler(
     return SUMMARY
 
 
-async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+def user_data_to_entry(user_data: dict) -> str:
+
+    current_year = datetime.datetime.now().year
+    formatted_date = f"{current_year}-{user_data['date']}"
+
+    entry_amount = user_data["amount"]
+    if user_data["type"] == "Income":
+        entry_amount = f"-{entry_amount}"
+
+    entry_counterparty = f"{user_data['type']}:{user_data['counterparty']}"
+    if user_data["type"] == "Transfer":
+        entry_counterparty = f"{user_data['counterparty']}"
+
+    new_entry = f"{formatted_date} * \"{user_data['payee']}\"\n"
+    new_entry += f"    {entry_counterparty} {entry_amount} EUR\n"
+    new_entry += f"    {user_data['account']}"
+
+    return new_entry
+
+
+async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Returns `ConversationHandler.END`, which tells the
     ConversationHandler that the conversation is over.
     """
@@ -288,26 +309,44 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     context.user_data["account"] = update.callback_query.data
 
-    current_year = datetime.datetime.now().year
-    formatted_date = f"{current_year}-{context.user_data['date']}"
-
-    entry_amount = context.user_data["amount"]
-    if context.user_data["type"] == "Income":
-        entry_amount = f"-{entry_amount}"
-
-    entry_counterparty = (
-        f"{context.user_data['type']}:{context.user_data['counterparty']}"
-    )
-    if context.user_data["type"] == "Transfer":
-        entry_counterparty = f"{context.user_data['counterparty']}"
-
-    new_entry = f"{formatted_date} * \"{context.user_data['payee']}\"\n"
-    new_entry += f"    {entry_counterparty} {entry_amount} EUR\n"
-    new_entry += f"    {context.user_data['account']}"
+    new_entry = user_data_to_entry(context.user_data)
 
     await query.edit_message_text(
-        text=f"Summary:\n<pre>{new_entry}</pre>", parse_mode="HTML"
+        text=f"Is the entry correct?\n<pre>{new_entry}</pre>",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Yes", callback_data="yes"),
+                    InlineKeyboardButton("No", callback_data="no"),
+                ]
+            ]
+        ),
     )
+
+    return CONFIRM_ENTRY
+
+
+async def confirm_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if (
+        update.callback_query is None
+        or update.callback_query.data is None
+        or context.user_data is None
+        or update.effective_chat is None
+    ):
+        logger.warn(f"Update has no callback query")
+        return ConversationHandler.END
+
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "no":
+        await query.edit_message_text(text="Entry cancelled")
+        return ConversationHandler.END
+
+    await query.edit_message_text(text="Adding entry...")
+    new_entry = user_data_to_entry(context.user_data)
+
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id, action=ChatAction.TYPING
     )
@@ -372,7 +411,10 @@ def add_handlers(app: Application):
             ],
             SELECT_ACCOUNT: [CallbackQueryHandler(select_account_handler)],
             SUMMARY: [
-                CallbackQueryHandler(end),
+                CallbackQueryHandler(summary),
+            ],
+            CONFIRM_ENTRY: [
+                CallbackQueryHandler(confirm_entry),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
