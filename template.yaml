@@ -25,6 +25,7 @@ Resources:
         AuthType: NONE
       ReservedConcurrentExecutions: 1
       Timeout: 30
+      MemorySize: 512
       Policies:
         - Version: "2012-10-17"
           Statement:
