@@ -109,6 +109,7 @@ async def account_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Stages
 (
+    ENTER_NARRATION,
     ENTER_PAYEE,
     SELECT_DATE,
     SELECT_TYPE,
@@ -117,7 +118,7 @@ async def account_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     SELECT_ACCOUNT,
     SUMMARY,
     CONFIRM_ENTRY,
-) = range(8)
+) = range(9)
 
 
 async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -131,26 +132,78 @@ async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         "Enter the amount in EUR",
         reply_markup=ForceReply(input_field_placeholder="420.69"),
     )
-    return ENTER_PAYEE
+    return SELECT_TYPE
 
 
-async def enter_payee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def select_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Get user that sent /start and log his name
     if (
         update.message is None
-        or update.message.from_user is None
         or context.user_data is None
+        or update.effective_chat is None
     ):
         logger.warn(f"Update has no message")
         return ConversationHandler.END
 
     context.user_data["amount"] = update.message.text
 
-    user = update.message.from_user
-    logger.info("User %s started the conversation.", user.first_name)
-    await update.message.reply_text(
-        "Enter the payee",
+    all_counterparties = get_counterparties()
+    all_types = list(all_counterparties.keys())
+    all_types.sort()
+    keyboard = [
+        [InlineKeyboardButton(type, callback_data=f"{type}")] for type in all_types
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Send message with text and appended InlineKeyboard
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Select type",
+        reply_markup=reply_markup,
+    )
+    # Tell ConversationHandler that we're in state `FIRST` now
+    return ENTER_NARRATION
+
+
+async def enter_narration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if (
+        update.callback_query is None
+        or context.user_data is None
+        or update.effective_chat is None
+    ):
+        logger.warn(f"Update has no message")
+        return ConversationHandler.END
+
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["type"] = query.data
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Enter the narration",
+        reply_markup=ForceReply(input_field_placeholder="Buying Condoms"),
+    )
+
+    return ENTER_PAYEE
+
+
+async def enter_payee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if (
+        update.message is None
+        or context.user_data is None
+        or update.effective_chat is None
+    ):
+        logger.warn(f"Update has no message")
+        return ConversationHandler.END
+
+    context.user_data["narration"] = update.message.text
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Enter the payee",
         reply_markup=ForceReply(input_field_placeholder="ALBERT HEIJN"),
     )
+
     return SELECT_DATE
 
 
@@ -180,36 +233,6 @@ async def select_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     # Send message with text and appended InlineKeyboard
     await update.message.reply_text("Select a date", reply_markup=reply_markup)
     # Tell ConversationHandler that we're in state `FIRST` now
-    return SELECT_TYPE
-
-
-async def select_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    # Get user that sent /start and log his name
-    if update.callback_query is None or context.user_data is None:
-        logger.warn(f"Update has no message")
-        return ConversationHandler.END
-    # get dates from today to 6 days ago
-    dates = [datetime.datetime.now() - datetime.timedelta(days=i) for i in range(6)]
-    date_strs = [date.strftime("%m-%d") for date in dates]
-    date_strs.sort()
-
-    query = update.callback_query
-    await query.answer()
-    context.user_data["date"] = query.data
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Income", callback_data="Income"),
-            InlineKeyboardButton("Expense", callback_data="Expenses:Variable"),
-            InlineKeyboardButton("Transfer", callback_data="Transfer"),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    # Send message with text and appended InlineKeyboard
-    await update.callback_query.edit_message_text(
-        "Select type", reply_markup=reply_markup
-    )
-    # Tell ConversationHandler that we're in state `FIRST` now
     return SELECT_COUNTERPARTY
 
 
@@ -225,7 +248,7 @@ async def select_counterparty(
     query = update.callback_query
     await query.answer()
 
-    context.user_data["type"] = query.data
+    context.user_data["date"] = query.data
 
     all_counterparties = get_counterparties()
 
@@ -284,7 +307,15 @@ def user_data_to_entry(user_data: dict) -> str:
     if user_data["type"] == "Transfer":
         entry_counterparty = f"{user_data['counterparty']}"
 
-    new_entry = f"{formatted_date} * \"{user_data['payee']}\"\n"
+    narration = user_data["narration"]
+    if narration == ".":
+        narration = ""
+
+    payee = user_data["payee"]
+    if payee == ".":
+        payee = ""
+
+    new_entry = f'{formatted_date} * "{payee}" "{narration}"\n'
     new_entry += f"    {entry_counterparty} {entry_amount} EUR\n"
     new_entry += f"    {user_data['account']}"
 
@@ -363,6 +394,7 @@ async def confirm_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             parse_mode="HTML",
         )
 
+    await account_report(update, context)
     await budget_report(update, context)
     return ConversationHandler.END
 
@@ -397,14 +429,17 @@ def add_handlers(app: Application):
             CommandHandler("add", enter_amount, filters.User(user_id=allowed_user_ids))
         ],
         states={
+            SELECT_TYPE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, select_type),
+            ],
+            ENTER_NARRATION: [
+                CallbackQueryHandler(enter_narration),
+            ],
             ENTER_PAYEE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, enter_payee),
             ],
             SELECT_DATE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, select_date),
-            ],
-            SELECT_TYPE: [
-                CallbackQueryHandler(select_type),
             ],
             SELECT_COUNTERPARTY: [
                 CallbackQueryHandler(select_counterparty),
