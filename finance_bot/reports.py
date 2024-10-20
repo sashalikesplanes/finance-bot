@@ -66,11 +66,7 @@ def generate_monthly_budget_report(entries, options):
             if row.date.month == last_date.month:
                 accounts[row.account]["spent_this_month"] += row.position.units.number
 
-        if (
-            row.position.units.currency == "BGT_EUR"
-            and row.position.units.number > 0
-            and "budget" in row.tags
-        ):
+        if row.position.units.currency == "BGT_EUR" and "budget" in row.tags:
             accounts[row.account]["assigned"] += row.position.units.number
             if row.date.month == last_date.month:
                 accounts[row.account][
